@@ -1,34 +1,27 @@
-# Python template
+# Stage-controls
 
-A template for starting Python 3 projects.
+This package allows to communicate with a running instance of [ros-stage-rl](https://github.com/cipollone/ros-stage-rl).
+Together, these two packages define a communicatio protocol.
+Branches in each repository are meant to be able to communicate correctly, because they must
+agree on the observation and action spaces.
 
 ## Use
 
-When you use this repo as template, you have to chage:
-
-- This README
-- The LICENSE
-- Package name and info
-- Add dependencies
-- Personalize editor infos (e.g. python path in .vim/)
+Run 
 
 
 ## Install
-This package can be installed as usual:
+
+This package can be installed both on python 2 and 3:
 
     pip install .
 
-Or, we can install a specific tested version of this package and its dependencies with:
+Or, install for development with poetry:
 
-    poetry install --no-dev
+    poetry install
 
-Omit the `--no-dev` option if you're installing for local development.
 
 ## Run
-If installed with poetry, you can run the main function with:
+Run main script with:
 
-    poetry run python -m <package-name>
-
-or specific scripts with:
-
-    poetry run python scripts/<python-file>
+    python -m stage_controls
