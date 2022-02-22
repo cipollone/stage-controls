@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import, division, print_function
 
+from builtins import str
+from builtins import object
 import signal
 
 
@@ -20,7 +22,7 @@ class QuitWithResources(object):
     def close():
         """Close all and quit."""
 
-        for name, deleter in QuitWithResources.__deleters.items():
+        for name, deleter in list(QuitWithResources.__deleters.items()):
             deleter()
         quit()
 

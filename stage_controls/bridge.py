@@ -10,6 +10,9 @@ Currently, the other end of the communication has been implemented in:
 """
 
 from __future__ import absolute_import, division, print_function
+from builtins import input
+from builtins import str
+from builtins import object
 from future import standard_library
 standard_library.install_aliases()
 
@@ -237,7 +240,7 @@ class Connector(object):
             self.action_receiver.port, " for actions. (pause)",
             sep="", end=" ",
         )
-        raw_input()
+        input()
         self.action_receiver.start()
 
 

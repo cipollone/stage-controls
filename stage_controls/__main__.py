@@ -1,4 +1,5 @@
 from __future__ import absolute_import, division, print_function
+from builtins import input
 import argparse
 import random
 
@@ -34,7 +35,7 @@ def main():
 def test_actions():
     """Just test actions and their effect."""
 
-    raw_input("Warning: testing random actions. Are you on a simulator? (Y) ")
+    input("Warning: testing random actions. Are you on a simulator? (Y) ")
 
     # Ros
     stage_controls = bridge.StageControls(verbose=True)
