@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "python-template"
+name = "stage_controls"
 version = "0.1.0"
 description = "A template for Python projects"
 authors = ["Roberto Cipollone <cipollone.rt@gmail.com>"]
