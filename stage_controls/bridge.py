@@ -1,10 +1,8 @@
 """Communicate with ROS Stage environment from sockets.
 
 It will open a pair of sockets:
-  - One is used to receive actions that should be forwarded to ROS.
-  - Another is used to send back the observations/state from ROS.
-The allowed actions are a subset of those allowed by the repo:
-    marrtino_apps.program.robot_cmd_ros
+  - One is used to receive actions that should be forwarded to the robot.
+  - Another is used to send back the observations/state of the robot.
 Currently, the other end of the communication has been implemented in:
     cipollone/ros-stage-rl
 """
@@ -13,17 +11,11 @@ from __future__ import absolute_import, division, print_function
 from builtins import input
 from builtins import str
 from builtins import object
-from future import standard_library
-standard_library.install_aliases()
 
-import sys
-import os
 import numpy as np
 
-sys.path.append(os.getenv('MARRTINO_APPS_HOME')+'/program')
-import robot_cmd_ros as robot
-
 from .streaming import Sender, Receiver
+from .robot_control import RobotControl
 
 
 class StageControls(object):
@@ -35,27 +27,21 @@ class StageControls(object):
 
     def __init__(self, verbose=False):
         """Initialize."""
-
-        # Init vars
-        self._tv = 0.0
-        self._rv = 0.0
-        self.state = [0, 0, 0, 0, 0]  # [x,y,th,tv,rv]
         self._verbose = verbose
 
         # Parameters
-        self._dt = 0.2
-        self._max_tv = 0.5              # Max velocity TODO: ros seems to clamp to this value, why?
-        self._max_rv = 0.4              # Max angular velocity
-        self._start_pose = [2.0, 2.0, 0.0]  # Initial pose [x,y,th]
+        self._acceleration = 0.2
+        self._angle_velocity = 40   # In degrees
+        self._max_linear_vel = 0.5
+        self._start_state = [0, 0, 0, 0]  # [x,y,th,vel]
 
         # Actions definitions. NOTE: actions can be personalized here
         self.actions = [
-            self._action_faster1,
-            self._action_faster2,
+            self._action_faster,
             self._action_slower,
             self._action_turn1,
             self._action_turn2,
-            self._action_reduce_angle_speed,
+            self._action_interact,
         ]
         self.n_actions = len(self.actions)
 
@@ -64,76 +50,53 @@ class StageControls(object):
             -1: self._signal_reset,
         }
 
+        # Init vars
+        self.state = self._start_state
+        self._current_angle = self.state[2]
+        self._current_vel = self.state[3]
+        assert self._current_vel == 0
+
         # Start
-        self.ros_init()
-
-
-    def ros_init(self):
-        """Initializations of the ros environment."""
-
-        robot.begin()
-
-        robot.setMaxSpeed(self._max_tv, self._max_rv)
-        robot.enableObstacleAvoidance(True)
-        os.system("rosparam set /gradientBasedNavigation/max_vel_x %.2f" %
-            self._max_tv)
-        os.system("rosparam set /gradientBasedNavigation/max_vel_theta %.2f" %
-            self._max_rv)
-
+        self.control = RobotControl()
+        self._signal_reset()
 
     def _saturate_velocities(self):
         """Ensure max and min in velocities."""
-        self._tv = max(-0,            min(self._tv, self._max_tv))
-        self._rv = max(-self._max_rv, min(self._rv, self._max_rv))
+        self._current_vel = max(0, min(self._current_vel, self._max_linear_vel))
 
+    def _saturate_angle(self):
+        """Just limit angles."""
+        self._current_angle = max(0, min(self._current_angle, 360))
 
-    def _action_faster1(self):
-        self._tv += 0.2
+    def _action_faster(self):
+        self._current_vel += self._acceleration
         self._saturate_velocities()
-        return robot.setSpeed(self._tv,self._rv,self._dt,False)
-
-
-    def _action_faster2(self):
-        self._tv += 0.1
-        self._saturate_velocities()
-        return robot.setSpeed(self._tv,self._rv,self._dt,False)
-
+        return self.control.set_velocity(self._current_vel)
 
     def _action_slower(self):
-        self._tv -= 0.1
+        self._current_vel -= self._acceleration
         self._saturate_velocities()
-        return robot.setSpeed(self._tv,self._rv,self._dt,False)
-
+        return self.control.set_velocity(self._current_vel)
 
     def _action_turn1(self):
-        self._rv += 0.1
-        self._saturate_velocities()
-        return robot.setSpeed(self._tv,self._rv,self._dt,False)
-
+        self._current_angle += self._angle_velocity
+        self._saturate_angle()
+        return self.control.set_angle(self._current_angle)
 
     def _action_turn2(self):
-        self._rv -= 0.1
-        self._saturate_velocities()
-        return robot.setSpeed(self._tv,self._rv,self._dt,False)
+        self._current_angle -= self._angle_velocity
+        self._saturate_angle()
+        return self.control.set_angle(self._current_angle)
 
-
-    def _action_reduce_angle_speed(self):
-        self._rv /= 2.0
-        return robot.setSpeed(self._tv,self._rv,self._dt,False)
-
-
-    def _actoin_noop(self):
-        return robot.setSpeed(self._tv,self._rv,self._dt,False)
-
+    def _action_interact(self):
+        # NOTE: noop for now, just connect this to an interaction routine
+        return
 
     def _signal_reset(self):
         """Reset the environment."""
-        self._tv = 0.0
-        self._rv = 0.0
-        robot.setSpeed(self._tv,self._rv,self._dt,False)
-        robot.stage_setpose(*self._start_pose)
-        robot.wait(0.5)
-
+        self.state = self._start_state
+        self.control.set_pose(*self.state[:3])
+        self.control.set_velocity(self.state[3])
 
     def act(self, action):
         """Executes action number i (a positive index) or a signal."""
@@ -155,17 +118,11 @@ class StageControls(object):
             print("Action:", "{0:>2}".format(action), end=", ")
         return self.actions[action]()
 
-
     def get_state(self):
         """Computes and returns the state vector."""
-
-        p = robot.getRobotPose(frame='gt')
-        v = robot.getRobotVel()
-        self.state = [p[0],p[1],p[2],v[0],v[1]]
-
+        self.state = self.control.get_state()
         if self._verbose:
             print("State:", np.array(self.state, dtype=np.float32))
-
         return self.state
 
 
@@ -200,7 +157,6 @@ class Connector(object):
             array = np.frombuffer(buff, dtype=np.int32)
             return array.item()
 
-
     class StateSender(Sender):
         """Just a wrapper that serializes states."""
 
@@ -216,7 +172,6 @@ class Connector(object):
 
             # Send
             Sender.send(self, buff)
-
 
     def __init__(self, verbose=False):
         """Initialize."""
@@ -236,13 +191,16 @@ class Connector(object):
         # Connect now
         self.state_sender.start()
         print("> Serving states on", self.state_sender.server.server_address)
-        print("> Connecting to ", self.action_receiver.ip, ":",
-            self.action_receiver.port, " for actions. (pause)",
-            sep="", end=" ",
+        print(
+            "> Connecting to ",
+            self.action_receiver.ip, ":",
+            self.action_receiver.port,
+            " for actions. (pause)",
+            sep="",
+            end=" ",
         )
         input()
         self.action_receiver.start()
-
 
     def run(self):
         """Loop: continuously execute actions and return states.
@@ -252,7 +210,6 @@ class Connector(object):
         observation/state.
         This never terminates: use CTRL-C.
         """
-
         while True:
 
             # Get an action from the agent

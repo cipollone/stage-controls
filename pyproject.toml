@@ -5,8 +5,9 @@ description = "A template for Python projects"
 authors = ["Roberto Cipollone <cipollone.rt@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 future = "^0.18.2"
+numpy = "^1.22.2"
 
 [tool.poetry.dev-dependencies]
 ipython = "^7.22.0"
