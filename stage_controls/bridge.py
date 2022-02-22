@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-
 """Communicate with ROS Stage environment from sockets.
 
 It will open a pair of sockets:
