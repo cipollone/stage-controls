@@ -21,18 +21,21 @@ class RobotControl(object):
 
     def set_velocity(self, vel):
         """Modify the linear velocity."""
-        # TODO
+        # TODO: update below
+        print("Setting vel ", vel)
 
     def set_position(self, x, y):
         """Modify the position in the map."""
-        # TODO
+        # TODO: update below
+        print("Setting x, y ", x, y)
 
     def set_angle(self, angle):
         """Rotate the robot to a target angle.
 
         Assuming angle is in degrees.
         """
-        # TODO
+        # TODO: update below
+        print("Setting angle", angle)
 
     def set_pose(self, x, y, angle):
         """Modify the pose.
@@ -51,3 +54,4 @@ class RobotControl(object):
         # TODO: fill this and remove below
         #p = robot.getRobotPose(frame='gt')
         #v = robot.getRobotVel()
+        return [1, 2, 3, 4]

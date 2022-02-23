@@ -23,26 +23,40 @@ class StageControls(object):
 
     self.actions defines a list of available actions. Positive indexes are
     mapped to these actions based on their position on this list.
+    action_set is an index that allows to experiment with different definitions
+    of actions.
     """
 
-    def __init__(self, verbose=False):
+    def __init__(self, action_set, verbose=False):
         """Initialize."""
         self._verbose = verbose
 
-        # Parameters
-        self._acceleration = 0.2
-        self._angle_velocity = 40   # In degrees
-        self._max_linear_vel = 0.5
-        self._start_state = [0, 0, 0, 0]  # [x,y,th,vel]
+        # Choose parameters based on selection
+        if action_set == 1:
 
-        # Actions definitions. NOTE: actions can be personalized here
-        self.actions = [
-            self._action_faster,
-            self._action_slower,
-            self._action_turn1,
-            self._action_turn2,
-            self._action_interact,
-        ]
+            # Parameters
+            self._acceleration = 0.2
+            self._ang_velocity = 40   # In degrees
+            self._max_linear_vel = 0.5
+            self._start_state = [0, 0, 0, 0]  # [x,y,th,vel]
+
+            # Actions definitions
+            self.actions = [
+                self._action_faster,
+                self._action_slower,
+                self._action_turn1,
+                self._action_turn2,
+                self._action_interact,
+            ]
+
+        elif action_set == 2:
+            raise NotImplementedError(
+                "Further action and parameters definition here"
+            )
+
+        else:
+            raise ValueError("Not a valid action_set")
+
         self.n_actions = len(self.actions)
 
         # Other (non-RL) signals
@@ -64,9 +78,9 @@ class StageControls(object):
         """Ensure max and min in velocities."""
         self._current_vel = max(0, min(self._current_vel, self._max_linear_vel))
 
-    def _saturate_angle(self):
+    def _360_angle(self):
         """Just limit angles."""
-        self._current_angle = max(0, min(self._current_angle, 360))
+        self._current_angle = self._current_angle % 360
 
     def _action_faster(self):
         self._current_vel += self._acceleration
@@ -79,13 +93,13 @@ class StageControls(object):
         return self.control.set_velocity(self._current_vel)
 
     def _action_turn1(self):
-        self._current_angle += self._angle_velocity
-        self._saturate_angle()
+        self._current_angle += self._ang_velocity
+        self._360_angle()
         return self.control.set_angle(self._current_angle)
 
     def _action_turn2(self):
-        self._current_angle -= self._angle_velocity
-        self._saturate_angle()
+        self._current_angle -= self._ang_velocity
+        self._360_angle()
         return self.control.set_angle(self._current_angle)
 
     def _action_interact(self):
@@ -136,9 +150,8 @@ class Connector(object):
     # Communication protocol
     actions_port = 30005
     states_port = 30006
-    state_msg_len = 20    # a numpy vector of 5 float32
+    state_msg_len = 16    # a numpy vector of 4 float32
     action_msg_len = 4    # a numpy positive scalar of type int32
-
 
     class ActionReceiver(Receiver):
         """Just a wrapper that deserializes actions."""
@@ -153,7 +166,9 @@ class Connector(object):
             buff = Receiver.receive(self, wait=True)
 
             # Deserialize
-            assert len(buff) == Connector.action_msg_len
+            assert len(buff) == Connector.action_msg_len, (
+                "Expected msg len {}, got {}".format(
+                    Connector.action_msg_len, len(buff)))
             array = np.frombuffer(buff, dtype=np.int32)
             return array.item()
 
@@ -165,19 +180,19 @@ class Connector(object):
 
             :param state: a numpy array.
             """
-
             # Serialize
             buff = np.array(state, dtype=np.float32).tobytes()
-            assert len(buff) == Connector.state_msg_len
-
+            assert len(buff) == Connector.state_msg_len, (
+                "Expected msg len {}, got {}".format(
+                    Connector.state_msg_len, len(buff)))
             # Send
             Sender.send(self, buff)
 
-    def __init__(self, verbose=False):
+    def __init__(self, action_set, verbose=False):
         """Initialize."""
 
         # StageControls
-        self.stage_controls = StageControls(verbose=verbose)
+        self.stage_controls = StageControls(action_set, verbose=verbose)
 
         # Initialize connections
         self.state_sender = Connector.StateSender(
