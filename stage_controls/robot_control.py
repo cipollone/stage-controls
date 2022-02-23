@@ -49,9 +49,10 @@ class RobotControl(object):
     def get_state(self):
         """Retrieve configuration of the robot.
 
-        A configuration is [x, y, theta, vel]
+        A configuration is [x, y, theta, vel, persondetected?]
         """
         # TODO: fill this and remove below
         #p = robot.getRobotPose(frame='gt')
         #v = robot.getRobotVel()
-        return [1, 2, 3, 4]
+        # person detected?
+        return [1, 2, 3, 4, 0]

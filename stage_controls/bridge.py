@@ -38,7 +38,7 @@ class StageControls(object):
             self._acceleration = 0.2
             self._ang_velocity = 40   # In degrees
             self._max_linear_vel = 0.5
-            self._start_state = [0, 0, 0, 0]  # [x,y,th,vel]
+            self._start_state = [0, 0, 0, 0, 0]  # [x,y,th,vel,person?]
 
             # Actions definitions
             self.actions = [
@@ -150,7 +150,7 @@ class Connector(object):
     # Communication protocol
     actions_port = 30005
     states_port = 30006
-    state_msg_len = 16    # a numpy vector of 4 float32
+    state_msg_len = 20    # a numpy vector of 5 float32
     action_msg_len = 4    # a numpy positive scalar of type int32
 
     class ActionReceiver(Receiver):
@@ -161,7 +161,6 @@ class Connector(object):
 
             :return: a scalar int that identifies an action (no bound checks)..
             """
-
             # Receive
             buff = Receiver.receive(self, wait=True)
 
