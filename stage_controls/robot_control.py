@@ -8,6 +8,8 @@ class RobotControl(object):
 
     def __init__(self):
         """Initializations."""
+        # notes max_vel 0.5
+        # notes vel_ang 1.0 rad/s
         # TODO: from old repo; update these
         #robot.begin()
         #robot.setMaxSpeed(self._max_tv, self._max_rv)

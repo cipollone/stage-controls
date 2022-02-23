@@ -49,7 +49,6 @@ def test_actions(action_set):
     # Flags
     quit = False
     def do_quit():
-        nonlocal quit
         quit = True
     QuitWithResources.add("quit-test", do_quit)
 
