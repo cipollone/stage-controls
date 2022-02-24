@@ -58,8 +58,7 @@ class RobotControl(object):
         Assuming angle is in degrees.
         """
         self.set_velocity(0)
-        self.set_position(x, y)
-        self.set_angle(angle)
+        robot.stage_setpose(x, y, angle)
 
     def get_state(self):
         """Retrieve configuration of the robot.
