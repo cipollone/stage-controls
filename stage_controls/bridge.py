@@ -8,14 +8,14 @@ Currently, the other end of the communication has been implemented in:
 """
 
 from __future__ import absolute_import, division, print_function
-from builtins import input
-from builtins import str
-from builtins import object
+
+import time
+from builtins import input, object, str
 
 import numpy as np
 
-from .streaming import Sender, Receiver
 from .robot_control import RobotControl
+from .streaming import Receiver, Sender
 
 
 class StageControls(object):
@@ -38,7 +38,7 @@ class StageControls(object):
             self._acceleration = 0.2
             self._ang_velocity = 40   # In degrees
             self._max_linear_vel = 0.5
-            self._start_state = [0, 0, 0, 0, 0]  # [x,y,th,vel,person?]
+            self._start_state = [0, 0, 0, 0, 0]  # [x,y,th,vel,?]
 
             # Actions definitions
             self.actions = [
@@ -72,7 +72,7 @@ class StageControls(object):
 
         # Start
         self.control = RobotControl()
-        self._signal_reset()
+        # The clent should now reset
 
     def _saturate_velocities(self):
         """Ensure max and min in velocities."""
@@ -192,6 +192,7 @@ class Connector(object):
 
         # StageControls
         self.stage_controls = StageControls(action_set, verbose=verbose)
+        time.sleep(4)  # Wait for stage initializations and messages
 
         # Initialize connections
         self.state_sender = Connector.StateSender(

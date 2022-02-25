@@ -65,6 +65,6 @@ class RobotControl(object):
 
         A configuration is [x, y, theta, vel, ?]
         """
-        pose = robot.get_robot_pose()  # TODO: should frame be gt?
+        pose = robot.get_robot_pose(frame="gt")  # odom gets out of sync with set_pose
         vel = robot.get_robot_vel()    # Linear and angular
         return pose + [vel[0]] + [0]
