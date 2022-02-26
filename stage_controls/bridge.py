@@ -35,10 +35,11 @@ class StageControls(object):
         if action_set == 1:
 
             # Parameters
-            self._acceleration = 0.2
-            self._ang_velocity = 40   # In degrees
+            self._linear_acceleration = 0.2
+            self._ang_acceleration = 15  # deg/s^2
             self._max_linear_vel = 0.5
-            self._start_state = [6, -4, 0, 0, 0]  # [x,y,th,vel,?]
+            self._max_ang_vel = 45  # deg/s
+            self._start_state = [6, -4, 0, 0, 0]  # [x,y,th,vel,angvel]
 
             # Actions definitions
             self.actions = [
@@ -66,41 +67,50 @@ class StageControls(object):
 
         # Init vars
         self.state = self._start_state
-        self._current_angle = self.state[2]
         self._current_vel = self.state[3]
+        self._current_ang_vel = self.state[4]
         assert self._current_vel == 0
+        assert self._current_ang_vel == 0
 
         # Start
-        self.control = RobotControl()
+        self.control = RobotControl(
+            max_vel=self._max_linear_vel,
+            max_ang_vel=self._max_ang_vel,
+        )
         # The clent should now reset
 
     def _saturate_velocities(self):
         """Ensure max and min in velocities."""
-        self._current_vel = max(0, min(self._current_vel, self._max_linear_vel))
+        self._current_vel = max(
+            0, min(
+                self._current_vel, self._max_linear_vel
+            ))
+        self._current_ang_vel = max(
+            -self._max_ang_vel, min(
+                self._current_ang_vel, self._max_ang_vel
+            ))
 
-    def _360_angle(self):
+    def _360_angle(self, angle):
         """Just limit angles."""
-        self._current_angle = self._current_angle % 360
+        return angle % 360
 
     def _action_faster(self):
-        self._current_vel += self._acceleration
+        self._current_vel += self._linear_acceleration
         self._saturate_velocities()
-        return self.control.set_velocity(self._current_vel)
+        self.control.set_velocity(self._current_vel)
 
     def _action_slower(self):
-        self._current_vel -= self._acceleration
+        self._current_vel -= self._linear_acceleration / 2  # Bias toward speeding up
         self._saturate_velocities()
-        return self.control.set_velocity(self._current_vel)
+        self.control.set_velocity(self._current_vel)
 
     def _action_turn1(self):
-        self._current_angle += self._ang_velocity
-        self._360_angle()
-        return self.control.set_angle(self._current_angle)
+        self._current_ang_vel += self._ang_acceleration
+        self.control.set_ang_velocity(self._current_ang_vel)
 
     def _action_turn2(self):
-        self._current_angle -= self._ang_velocity
-        self._360_angle()
-        return self.control.set_angle(self._current_angle)
+        self._current_ang_vel -= self._ang_acceleration
+        self.control.set_ang_velocity(self._current_ang_vel)
 
     def _action_interact(self):
         # NOTE: noop for now, just connect this to an interaction routine
@@ -111,6 +121,7 @@ class StageControls(object):
         self.state = self._start_state
         self.control.set_pose(*self.state[:3])
         self.control.set_velocity(self.state[3])
+        self.control.set_ang_velocity(self.state[4])
 
     def act(self, action):
         """Executes action number i (a positive index) or a signal."""

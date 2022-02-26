@@ -1,6 +1,8 @@
 """Interface for robot controls."""
 
 from __future__ import absolute_import, division, print_function
+
+import math
 import os
 import sys
 
@@ -15,29 +17,38 @@ import robot_cmd_ros as robot
 class RobotControl(object):
     """Controller class for the robot."""
 
-    max_vel = 0.5
-    max_ang_vel = 1.0
     dt = 0.2  # Control frequency
 
-    def __init__(self):
+    def __init__(self, max_vel, max_ang_vel):
         """Initializations."""
         robot.begin()
-        robot.setMaxSpeed(self.max_vel, self.max_ang_vel)
+        robot.setMaxSpeed(max_vel, max_ang_vel)
         robot.enableObstacleAvoidance(True)
         os.system(
             "rosparam set /gradientBasedNavigation/max_vel_x %.2f" %
-            self.max_vel
+            max_vel
         )
         os.system(
             "rosparam set /gradientBasedNavigation/max_vel_theta %.2f" %
-            self.max_ang_vel
+            max_ang_vel
         )
+
+        # State
+        self.vel = 0
+        self.ang_vel = 0
 
         print("Initialized")
 
     def set_velocity(self, vel):
         """Modify the linear velocity."""
-        robot.set_speed(vel, 0, self.dt, stopend=False)
+        self.vel = vel
+        robot.set_speed(self.vel, self.ang_vel, self.dt, stopend=False)
+
+    def set_ang_velocity(self, vel):
+        """Modify angular velocity (degrees)."""
+        rads = vel / 180 * math.pi
+        self.ang_vel = rads
+        robot.set_speed(self.vel, self.ang_vel, self.dt, stopend=False)
 
     def set_position(self, x, y):
         """Modify the position in the map."""
@@ -63,8 +74,8 @@ class RobotControl(object):
     def get_state(self):
         """Retrieve configuration of the robot.
 
-        A configuration is [x, y, theta, vel, ?]
+        A configuration is [x, y, theta, vel, ang_vel]
         """
         pose = robot.get_robot_pose(frame="gt")  # odom gets out of sync with set_pose
         vel = robot.get_robot_vel()    # Linear and angular
-        return pose + [vel[0]] + [0]
+        return pose + vel
