@@ -38,7 +38,7 @@ class StageControls(object):
             self._acceleration = 0.2
             self._ang_velocity = 40   # In degrees
             self._max_linear_vel = 0.5
-            self._start_state = [0, 0, 0, 0, 0]  # [x,y,th,vel,?]
+            self._start_state = [6, -4, 0, 0, 0]  # [x,y,th,vel,?]
 
             # Actions definitions
             self.actions = [
